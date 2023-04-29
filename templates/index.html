@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+      <title>ADR Detection App</title>
+      <style>
+         body {
+        background-color: #f8f9fa;
+        }
+
+        .container {
+        max-width: 800px;
+        }
+
+        .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+        background-color: #0069d9;
+        border-color: #0062cc;
+        }
+
+        .btn-primary:focus, .btn-primary.focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
+        }
+      </style>
+   </head>
+   <body>
+        <nav class="navbar navbar-dark bg-dark">
+            <span class="navbar-brand mb-0 h1">ADR Detection App</span>
+        </nav>
+        <div class="container mt-5">
+            <div class="form-group">
+            <h4>Enter Statement:</h4>
+            <textarea class="form-control" id="inputText" rows="3"></textarea>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="detectADR()" id="btnSubmit">Submit</button>
+            <table class="table table-striped mt-5" style="display: none;" id="resTable">
+                <tbody>
+                  <tr>
+                    <th style="width: 20%">ADE Related:</th>
+                    <td id="adeRelated" style="font-family: Arial;font-weight: bold;"></td>
+                  </tr>
+                  <tr>
+                    <th style="width: 20%">Drugs:</th>
+                    <td id="drugs" style="font-family: Arial;"></td>
+                  </tr>
+                  <tr>
+                    <th style="width: 20%">Effects:</th>
+                    <td id="effects" style="font-family: Arial;"></td>
+                  </tr>
+                  <tr>
+                    <th style="width: 20%">Response:</th>
+                    <td id="ADRResponse" style="font-family: Georgia;"></td>
+                  </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                <h5 class="modal-title mb-3">Please wait while the response is being generated. It will take few minutes</h5>
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+      <!-- jQuery -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+	<!-- Bootstrap JS -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+		function detectADR() {
+			var textInput = $("#inputText").val();
+            const tdADRDetected = document.getElementById('adeRelated');
+            const tdDrugs = document.getElementById('drugs');
+            const tdEffects = document.getElementById('effects');
+            const tdResponse = document.getElementById('ADRResponse');
+            const loadingModal = $('#loadingModal');
+
+			$.ajax({
+				url: "/process",
+				type: "POST",
+				dataType: "json",
+				contentType: "application/json",
+				data: JSON.stringify({ 'input_text' : textInput.trim() }),
+                beforeSend: function() {
+                    loadingModal.modal('show');
+                },
+				success: function(response) {
+                    if (response.status != 200){
+                        alert(response.message);
+                        return;
+                    }
+					var adeDetected = response.ade_output;
+                    var drugs = response.drugs;
+                    var effects = response.effects;
+                    var finalText = response.text_output;
+                    var detectColor= "green"
+                    if (adeDetected == 'Yes'){
+                        detectColor = "red";
+                    };
+                    tdADRDetected.innerHTML = adeDetected;
+                    tdADRDetected.style.color = detectColor;
+                    tdDrugs.innerHTML = drugs;
+                    tdEffects.innerHTML = effects;
+                    tdResponse.innerHTML = finalText;
+                    document.getElementById("resTable").style.display = "table";
+                    alert('Response generated successfully!!');
+                    return;
+				},
+				error: function(xhr, textStatus, errorThrown) {
+					alert("Error:", errorThrown);
+                    return;
+				},
+                complete: function() {
+                    loadingModal.modal('hide');
+                    return;
+                }
+			});
+		};
+
+		$(document).ready(function() {
+			$("#btnSubmit").click(function() {
+				detectADR();
+			});
+		});
+	</script>
+   </body>
+</html>
